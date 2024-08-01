@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload and Download</title>
+    <style>
+        :root {
+            --background-light: #f4f4f9;
+            --background-dark: #121212;
+            --text-light: #333;
+            --text-dark: #e0e0e0;
+            --button-background-light: #007bff;
+            --button-background-dark: #1e88e5;
+            --button-hover-light: #0056b3;
+            --button-hover-dark: #1565c0;
+            --border-light: #ddd;
+            --border-dark: #333;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: var(--background-light);
+            color: var(--text-light);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        header {
+            background-color: var(--button-background-light);
+            color: #fff;
+            padding: 15px 0;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+        .button, .download-button {
+            display: inline-block;
+            font-size: 16px;
+            color: #fff;
+            background-color: var(--button-background-light);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover, .download-button:hover {
+            background-color: var(--button-hover-light);
+        }
+        .gallery-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 900px;
+            max-height: 80%;
+            background-color: #fff;
+            border: 1px solid var(--border-light);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 1000;
+            display: none;
+            border-radius: 8px;
+        }
+        .gallery-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
+        .arrow {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            font-size: 24px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 50%;
+            user-select: none;
+            transition: background 0.3s ease;
+        }
+        .arrow:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        .arrow.left {
+            left: 10px;
+        }
+        .arrow.right {
+            right: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        li:hover {
+            background-color: #f1f1f1;
+        }
+        a {
+            color: var(--button-background-light);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .upload-form {
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .upload-form input[type="file"] {
+            border: 1px solid var(--border-light);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--button-background-light);
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .theme-toggle:hover {
+            background-color: var(--button-hover-light);
+        }
+        .dark-mode {
+            background-color: var(--background-dark);
+            color: var(--text-dark);
+        }
+        .dark-mode .button, .dark-mode .download-button {
+            background-color: var(--button-background-dark);
+        }
+        .dark-mode .button:hover, .dark-mode .download-button:hover {
+            background-color: var(--button-hover-dark);
+        }
+        .dark-mode .gallery-container {
+            background-color: #333;
+            border: 1px solid var(--border-dark);
+        }
+        .dark-mode li {
+            background-color: #444;
+            border: 1px solid var(--border-dark);
+        }
+        .dark-mode li:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>File Upload and Download</h1>
+        <button id="theme-toggle" class="theme-toggle">Switch to Dark Mode</button>
+    </header>
+    <div class="container">
+        <a class="button" href="{{ url_for('logout') }}">Logout</a>
+        <h2>Upload a new File</h2>
+        <div class="upload-form">
+            <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                <input type="file" name="file">
+                <input type="submit" class="button" value="Upload">
+            </form>
+        </div>
+        <h2>Files</h2>
+        <ul>
+            {% if subpath %}
+                <li><a href="{{ url_for('index', subpath=subpath.rsplit('/', 1)[0]) }}">..</a></li>
+            {% endif %}
+            {% for dir in dirs %}
+                <li>
+                    <a href="{{ url_for('index', subpath=subpath + '/' + dir if subpath else dir) }}">{{ dir }}/</a>
+                    <a href="{{ url_for('download_folder', subpath=subpath + '/' + dir if subpath else dir) }}" class="button">[Download]</a>
+                </li>
+            {% endfor %}
+            {% for file in files %}
+                <li>
+                    <a href="{{ url_for('uploaded_file', filename=subpath + '/' + file if subpath else file) }}">{{ file }}</a>
+                    {% if file.endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')) %}
+                        <a href="#" onclick="openGallery('{{ url_for('uploaded_file', filename=subpath + '/' + file if subpath else file) }}'); return false;" class="button">[View]</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Photo Gallery -->
+    <div id="gallery" class="gallery-container">
+        <div class="arrow left" onclick="changeImage(-1)">&#10094;</div>
+        <img id="gallery-image" class="gallery-image" src="" alt="Gallery Image">
+        <a id="download-link" class="download-button" href="" download>Download</a>
+        <div class="arrow right" onclick="changeImage(1)">&#10095;</div>
+    </div>
+
+    <script>
+        var images = [];
+        var currentImageIndex = 0;
+
+        function openGallery(initialImage) {
+            images = [];
+            document.querySelectorAll('a[onclick^="openGallery"]').forEach(function(link) {
+                images.push(link.getAttribute('onclick').match(/'(.+)'/)[1]);
+            });
+            currentImageIndex = images.indexOf(initialImage);
+            showImage(currentImageIndex);
+            document.getElementById('gallery').style.display = 'block';
+        }
+
+        function showImage(index) {
+            var imageElement = document.getElementById('gallery-image');
+            imageElement.src = images[index];
+            var downloadLink = document.getElementById('download-link');
+            downloadLink.href = images[index];
+            downloadLink.style.display = 'block'; // Show download button
+        }
+
+        function changeImage(step) {
+            currentImageIndex = (currentImageIndex + step + images.length) % images.length;
+            showImage(currentImageIndex);
+        }
+
+        // Close gallery when clicking outside the image
+        document.getElementById('gallery').addEventListener('click', function(event) {
+            if (event.target === document.getElementById('gallery')) {
+                document.getElementById('gallery').style.display = 'none';
+            }
+        });
+
+        // Theme toggle
+        const themeToggleButton = document.getElementById('theme-toggle');
+        const body = document.body;
+
+        themeToggleButton.addEventListener('click', () => {
+            if (body.classList.contains('dark-mode')) {
+                body.classList.remove('dark-mode');
+                themeToggleButton.textContent = 'Switch to Dark Mode';
+            } else {
+                body.classList.add('dark-mode');
+                themeToggleButton.textContent = 'Switch to Light Mode';
+            }
+        });
+    </script>
+</body>
+</html>
